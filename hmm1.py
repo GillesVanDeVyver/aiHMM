@@ -1,44 +1,30 @@
-import sys
-
+from sys import stdin
 import matrix
 
-def main(argv):
-    count = 0
-    for line in sys.stdin:
-        if count == 0:
-            transNumbers = line.split()
-            A = matrix.createMatrix(transNumbers)
-        if count == 1:
-            emissionNumbers = line.split()
-            B = matrix.createMatrix(emissionNumbers)
-        if count == 2:
-            piNumbers = line.split()
-            pi = matrix.createMatrix(piNumbers)
-        if count == 3: #emissions
-            emmNumbers = line.split()
-            O = matrix.createVector(emmNumbers)
-        count += 1
-    T = len(O) # nb of observations
-    N = len(A);
-    alphaMatrix = [[0.0 for x in range(N)] for y in range(T)]
-    t =0
+
+def main():
+    A = matrix.create_matrix(stdin.readline().split())
+    B = matrix.create_matrix(stdin.readline().split())
+    pi = matrix.create_matrix(stdin.readline().split())
+    emissions = matrix.create_vector(stdin.readline().split())
+    T = len(emissions)  # nb of observations
+    N = len(A)
+    alpha_matrix = [[0.0 for _ in range(N)] for _ in range(T)]
     for i in range(N):
-        alphaMatrix[t][i] = B[i][O[t]] * pi[0][i]
-    t+=1
-    while t<T:
+        alpha_matrix[0][i] = B[i][emissions[0]] * pi[0][i]
+    for t in range(1, T):
         for i in range(N):
             s = 0
             for j in range(N):
-                s+=A[j][i]*alphaMatrix[t-1][j]
-            alphaMatrix[t][i] = B[i][O[t]] * s
-        t+=1
+                s += A[j][i] * alpha_matrix[t-1][j]
+            alpha_matrix[t][i] = B[i][emissions[t]] * s
 
     result = 0
-    for j in range(N):
-        result+=alphaMatrix[T-1][j]
+    for i in range(N):
+        result += alpha_matrix[T-1][i]
     print(result)
     return result
 
 
 if __name__ == "__main__":
-    main(sys.argv)
+    main()
