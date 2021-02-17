@@ -16,12 +16,12 @@ def main():
     di_gamma = [[[0.0 for _ in range(N)] for _ in range(N)] for _ in range(T-1)]
     gamma = [[0.0 for _ in range(N)] for _ in range(T)]
     scaling_factors = [0.0 for _ in range(T)]
-    # max_its = 10
-    # its = 0
+    max_its = 10
+    its = 0
     old_log_prob = -float("inf")
     range_n = range(N)
 
-    while True:  # its < max_its:
+    while its < max_its:  # its < max_its:
         scaling_factors[0] = 0
         for i in range_n:
             temp = B[i][emissions[0]] * pi[0][i]
@@ -87,6 +87,7 @@ def main():
                 for t in range(T-1):
                     di_gamma_sum += di_gamma[t][i][j]
                 A[i][j] = di_gamma_sum / gamma_sum
+        its+=1
 
     result = str(N) + " " + str(N)
     for row in A:
