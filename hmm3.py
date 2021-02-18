@@ -16,7 +16,7 @@ def main():
     di_gamma = [[[0.0 for _ in range(N)] for _ in range(N)] for _ in range(T-1)]
     gamma = [[0.0 for _ in range(N)] for _ in range(T)]
     scaling_factors = [0.0 for _ in range(T)]
-    max_its = 10
+    max_its = 30
     its = 0
     old_log_prob = -float("inf")
     range_n = range(N)
