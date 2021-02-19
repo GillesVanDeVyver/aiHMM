@@ -23,10 +23,19 @@ class Hmm_model():
         self.add_random_noise(self.pi)
         self.emissions = []
 
+    def re_init(self):
+        self.A = self.uniform(N, N)
+        self.B = self.uniform(N, N_EMISSIONS)
+        self.pi = self.uniform(1, N)
+        self.add_random_noise(self.A)
+        self.add_random_noise(self.B)
+        self.add_random_noise(self.pi)
+
+
     def all_zero_col(self,matrix, col_ind):
         for i in range(0,len(matrix)):
             for el in matrix:
-                if el[col_ind] > 0.005:
+                if el[col_ind] != 0:
                     return False
         return True
 
@@ -58,9 +67,8 @@ class Hmm_model():
             self.scaling_factors[0] += temp
 
         if self.scaling_factors[0] == 0:
-            self.alpha[0] = self.uniform_vec(len(self.alpha[0]))
-            self.add_random_noise_vector(self.alpha[0])
-            self.scaling_factors[0] = 0.00000001
+            self.re_init()
+            return 1
         else:
             self.scaling_factors[0] = 1 / self.scaling_factors[0]
             self.alpha[0] = [x * self.scaling_factors[0] for x in self.alpha[0]]
@@ -77,9 +85,8 @@ class Hmm_model():
                 self.alpha[t][i] = self.B[i][self.emissions[t]] * s
                 self.scaling_factors[t] += self.alpha[t][i]
             if self.scaling_factors[t] == 0:
-                self.alpha[t] = self.uniform_vec(len(self.alpha[t]))
-                self.add_random_noise_vector(self.alpha[t])
-                self.scaling_factors[t] = 0.00000001
+                self.re_init()
+                return 1
             else:
                 self.scaling_factors[t] = 1 / self.scaling_factors[t]
                 self.alpha[t] = [x * self.scaling_factors[t] for x in self.alpha[t]]
@@ -125,7 +132,7 @@ class Hmm_model():
                 if gamma_sum == 0:  # fix for diagonal init
                     self.B[i][k] = 1 / (N_EMISSIONS)
                 else:
-                    self.B[i][k] = round(ind_gamma_sum / gamma_sum,3)
+                    self.B[i][k] = round(ind_gamma_sum / gamma_sum,2)
             for j in range_n:
                 di_gamma_sum = 0
                 for t in range(T - 1):
@@ -133,7 +140,7 @@ class Hmm_model():
                 if gamma_sum == 0:  # fix for diagonal init
                     self.A[i][j] = 1 / (len(self.A))
                 else:
-                    self.A[i][j] = round(di_gamma_sum / gamma_sum,3)
+                    self.A[i][j] = round(di_gamma_sum / gamma_sum,2)
 
 
     # mean square error
@@ -211,6 +218,10 @@ class Hmm_model():
         while its < max_its:
             self.check()
             log_prob = self.aplha_pass(range_n, T)
+            if log_prob==1:
+                print("happens")
+                log_prob = self.aplha_pass(range_n, T)
+
             if log_prob > old_log_prob + 1E-2:
                 old_log_prob = log_prob
             else:
@@ -223,5 +234,6 @@ class Hmm_model():
     def check(self):
         for t in range(0, len(self.B[0])):
             if self.all_zero_col(self.B, t):
-                self.uniform_col(self.B, t)
-                self.add_random_noise_col(self.B, t)
+                self.re_init()
+                #self.uniform_col(self.B, t)
+                #self.add_random_noise_col(self.B, t)

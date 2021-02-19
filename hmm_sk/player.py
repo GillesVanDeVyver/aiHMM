@@ -43,20 +43,23 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
 
         if (step>5):
             for i in range(0,N_EMISSIONS):
+                #if step%5 ==0:
+                    #self.models[i].re_init()
                 self.models[i].train(5,observations[i])
         else:
             for i in range(0,N_EMISSIONS):
                 self.models[i].add_emmissions_no_train(observations[i])
 
-        print("A" + str(self.models[3].A))
-        print("B" + str(self.models[3].B))
+        #print("A" + str(self.models[3].A))
+        #print("B" + str(self.models[3].B))
 
 
         # This code would make a random guess on each step:
         #print((observations))
-        return (step % N_FISH, random.randint(0, N_SPECIES - 1))
+        #return (step % N_FISH, random.randint(0, N_SPECIES - 1))
+        return (4, 1)
 
-        #return None
+        return None
 
     def reveal(self, correct, fish_id, true_type):
         """
@@ -84,15 +87,18 @@ all scaling factors all zero => initiliaze as uniform? => problem local maxima u
 Basic idea:
 1 hmm model for each fish.
 On each new observation, train the model for a few iterations.
-first obs: initialize unifrom + noise
+first obs: initialize uniform + noise
 Start with model from previous observations        note: stuck in local minima? Maybe reInitialize random? => later
-Once we now some fishes we can geuss that fishes with small mse are the same species
+Once we now some fishes we can guess that fishes with small mse are the same species
 
 Note: when to do guessing?
 
 Note: how much iterations to do in each obs? Each fish same amount of obs? Keep track of time?
 
-Note: the futher in the game the more obs => longer time/iter => less iter?
+Note: the further in the game the more obs => longer time/iter => less iter?
+
+Note: when scaling factor == 0 => something is wrong with the model => re initialize
+
 
 (Note: mse for pi is wrong)
 
