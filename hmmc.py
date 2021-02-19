@@ -118,7 +118,13 @@ def mse(matrix, correctMatrix):
     n = len(matrix[0])
     for i in range(m):
         for j in range(n):
-            mse += math.pow(matrix[i][j] - correctMatrix[i][j],2)
+            min = math.inf
+            for k in range(m):
+                rowmse = math.pow(matrix[i][j] - correctMatrix[i][j],2)
+                if (rowmse<mse):
+                    mse = rowmse
+
+            mse+=rowmse
     return mse/(m*n)
 
 
@@ -169,22 +175,22 @@ def main():
     # initial guesses
     # https://stackoverflow.com/questions/13966699/hidden-markov-model-initial-guess
     # here stochastic
-    #A = uniform(N,N)
+    A = uniform(N,N)
     B = uniform(N,K)
-    #pi = uniform(1,N)
+    pi = uniform(1,N)
 
     #add_stochastic_noise(A)
-    add_stochastic_noise(B)
+    #add_stochastic_noise(B)
     #add_stochastic_noise(pi)
 
     #diagonal
-    A = identity(N)
-    pi = [[0,0,1]]
+    #A = identity(N)
+    #pi = [[0,0,1]]
 
     # close to solution
-    #A = A_close
-    #B = B_close
-    #pi = pi_close
+    A = A_close
+    B = B_close
+    pi = pi_close
 
     # exact solution for testing
     #A = deepcopy(correct_A)
@@ -209,7 +215,7 @@ def main():
     print("A: " + str(A))
     print("B: " + str(B))
     print("pi: "+ str(pi))
-    print("number of states: " + str(N))
+    #print("number of states: " + str(N))
 
     print("final log prob train: " + str(old_log_prob))
     print("mse A: " + str(mse(A, correct_A)))
