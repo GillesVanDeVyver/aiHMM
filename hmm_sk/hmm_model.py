@@ -7,10 +7,14 @@ from constants import *
 
 N = 3
 
+
+
+
+
 class Hmm_model():
 
     # k = nb of possible obs
-    def __init__(self, first_obs):
+    def __init__(self):
         self.A = self.uniform(N, N)
         self.B = self.uniform(N, N_EMISSIONS)
         self.pi = self.uniform(1, N)
@@ -19,11 +23,33 @@ class Hmm_model():
         self.add_random_noise(self.pi)
         self.emissions = []
 
+    def all_zero_col(self,matrix, col_ind):
+        for i in range(0,len(matrix)):
+            for el in matrix:
+                if el[col_ind] > 0.005:
+                    return False
+        return True
+
+    def uniform_col(self,matrix,col_ind):
+        nb_rows = len(matrix)
+        val = 1 / (nb_rows)
+        for i in range(0,nb_rows):
+            matrix[i][col_ind] = val
+
+    def add_random_noise_col(self,matrix,col_ind):
+        val = matrix[0][col_ind]
+        nb_rows = len(matrix)
+        rowStoch = 0
+        for i in range(nb_rows - 1):
+            randVal = random.uniform(-val, val) / nb_rows
+            rowStoch -= randVal
+            matrix[i][col_ind] += randVal
+        matrix[nb_rows - 1][col_ind] += rowStoch
+
 
     def aplha_pass(self, range_n, T):
         self.scaling_factors[0] = 0
 
-        #if all_zero(B[i]):
 
 
         for i in range_n:
@@ -32,12 +58,14 @@ class Hmm_model():
             self.scaling_factors[0] += temp
 
         if self.scaling_factors[0] == 0:
-            self.scaling_factors[0] = 1/N
-            self.alpha[0] = [x * self.scaling_factors[0] for x in self.alpha[0]]
+            self.alpha[0] = self.uniform_vec(len(self.alpha[0]))
             self.add_random_noise_vector(self.alpha[0])
+            self.scaling_factors[0] = 0.00000001
         else:
             self.scaling_factors[0] = 1 / self.scaling_factors[0]
             self.alpha[0] = [x * self.scaling_factors[0] for x in self.alpha[0]]
+
+
 
         log_prob = log(self.scaling_factors[0])
         for t in range(1, T):
@@ -48,16 +76,14 @@ class Hmm_model():
                     s += self.A[j][i] * self.alpha[t - 1][j]
                 self.alpha[t][i] = self.B[i][self.emissions[t]] * s
                 self.scaling_factors[t] += self.alpha[t][i]
-
-            if self.scaling_factors[t] == 0:  # this observation never occured => whole col of B
-                self.alpha[t] = [x*1/N for x in self.alpha[t]]
+            if self.scaling_factors[t] == 0:
+                self.alpha[t] = self.uniform_vec(len(self.alpha[t]))
                 self.add_random_noise_vector(self.alpha[t])
-                log_prob += log(1/N)
+                self.scaling_factors[t] = 0.00000001
             else:
                 self.scaling_factors[t] = 1 / self.scaling_factors[t]
                 self.alpha[t] = [x * self.scaling_factors[t] for x in self.alpha[t]]
-                print(self.alpha[t])
-                log_prob += log(self.scaling_factors[t])
+            log_prob += log(self.scaling_factors[t])
         return -log_prob
 
 
@@ -99,7 +125,7 @@ class Hmm_model():
                 if gamma_sum == 0:  # fix for diagonal init
                     self.B[i][k] = 1 / (N_EMISSIONS)
                 else:
-                    self.B[i][k] = ind_gamma_sum / gamma_sum
+                    self.B[i][k] = round(ind_gamma_sum / gamma_sum,3)
             for j in range_n:
                 di_gamma_sum = 0
                 for t in range(T - 1):
@@ -107,7 +133,7 @@ class Hmm_model():
                 if gamma_sum == 0:  # fix for diagonal init
                     self.A[i][j] = 1 / (len(self.A))
                 else:
-                    self.A[i][j] = di_gamma_sum / gamma_sum
+                    self.A[i][j] = round(di_gamma_sum / gamma_sum,3)
 
 
     # mean square error
@@ -129,6 +155,10 @@ class Hmm_model():
     def uniform(self,m, n):
         val = 1 / (n)
         return [[val for x in range(n)] for y in range(m)]
+
+    def uniform_vec(self, n):
+        val = 1 / (n)
+        return [val for x in range(n)]
 
 
     def add_random_noise(self,matrix):
@@ -167,7 +197,6 @@ class Hmm_model():
     def train(self, max_its, new_obs):
         self.emissions.append(new_obs)
         T = len(self.emissions)
-        print("T = " + str(T))
 
         self.scaling_factors = [0.0 for _ in range(T)]
         N = 3
@@ -180,8 +209,8 @@ class Hmm_model():
         old_log_prob = -float("inf")
         range_n = range(N)
         while its < max_its:
+            self.check()
             log_prob = self.aplha_pass(range_n, T)
-            # print("log_prob: " + str(log_prob))
             if log_prob > old_log_prob + 1E-2:
                 old_log_prob = log_prob
             else:
@@ -190,3 +219,9 @@ class Hmm_model():
             self.compute_gamma(T, range_n)
             self.reestimate(range_n,T)
             its += 1
+
+    def check(self):
+        for t in range(0, len(self.B[0])):
+            if self.all_zero_col(self.B, t):
+                self.uniform_col(self.B, t)
+                self.add_random_noise_col(self.B, t)

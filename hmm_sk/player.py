@@ -19,10 +19,9 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
         pass
 
     def init_models(self,observations):
-        N_EMISSIONS
         self.models = []
         for i in range(0,len(observations)):
-            self.models.append(hmm_model.Hmm_model(observations[i]))
+            self.models.append(hmm_model.Hmm_model())
 
 
 
@@ -49,8 +48,8 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
             for i in range(0,N_EMISSIONS):
                 self.models[i].add_emmissions_no_train(observations[i])
 
-        #print(self.models[3].A)
-        print(self.models[3].B)
+        print("A" + str(self.models[3].A))
+        print("B" + str(self.models[3].B))
 
 
         # This code would make a random guess on each step:
@@ -87,8 +86,7 @@ Basic idea:
 On each new observation, train the model for a few iterations.
 first obs: initialize unifrom + noise
 Start with model from previous observations        note: stuck in local minima? Maybe reInitialize random? => later
-Periodically (or even timestamp?) do k means to find similar fish.  note: once fish revealed use this model as reference?
-Distance for k means mse between matrices
+Once we now some fishes we can geuss that fishes with small mse are the same species
 
 Note: when to do guessing?
 
