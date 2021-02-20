@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import math
 from player_controller_hmm import PlayerControllerHMMAbstract
 from constants import *
 import random
@@ -16,7 +16,10 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
         In this function you should initialize the parameters you will need,
         such as the initialization of models, or fishes, among others.
         """
-        pass
+        #self.centroids = [Centroid() for _ in range(0,N_SPECIES)]
+        #self.guessed_fishes = [[] for _ in range(0,N_SPECIES)]
+        self.guessed_fishes_dict = {}
+
 
     def init_models(self,observations):
         self.models = []
@@ -40,15 +43,26 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
         if step ==1:
             self.init_models(observations)
 
+        #if (N_STEPS - step == N_FISH):
+            #for model in self.models:
+                #print("A: " + str(model.A))
+                #print("B: " + str(model.B))
+
+        #print(step)
+        if (N_STEPS-step<=N_FISH+20):
+            #print(step)
+            return self.closest_already_guessed()
+
+
+
 
         if (step>5):
-            for i in range(0,N_EMISSIONS):
-                #if step%5 ==0:
-                    #self.models[i].re_init()
-                self.models[i].train(5,observations[i])
+            for i in range(0,len(observations)):
+                self.models[i].train(2,observations[i])
         else:
             for i in range(0,N_EMISSIONS):
                 self.models[i].add_emmissions_no_train(observations[i])
+
 
         #print("A" + str(self.models[3].A))
         #print("B" + str(self.models[3].B))
@@ -57,7 +71,6 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
         # This code would make a random guess on each step:
         #print((observations))
         #return (step % N_FISH, random.randint(0, N_SPECIES - 1))
-        return (4, 1)
 
         return None
 
@@ -71,8 +84,90 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
         :param true_type: the correct type of the fish
         :return:
         """
-        pass
+        #self.guessed_fishes[true_type].append(fish_id)
+        self.guessed_fishes_dict[fish_id] = true_type
 
+        #self.guessed_fishes_set.add(fish_id)
+
+
+        #self.centroids[true_type].add_model(self.models[fish_id])
+
+    def closest_already_guessed(self):
+        if (len(self.guessed_fishes_dict) == 0):
+            #print("random")
+            return (0, random.randint(0, N_SPECIES - 1))  #random guess
+
+        min_dist = math.inf
+        best_fish = 0
+        best_fish_type = 0
+        best_candidate = 0
+        for fish_id in range(0,N_FISH):
+            if not fish_id in self.guessed_fishes_dict.keys():
+                types_seen = set()
+
+                for candidate_fish_id in self.guessed_fishes_dict.keys():
+                    if self.guessed_fishes_dict[candidate_fish_id] not in types_seen:
+                        dist = self.distance(self.models[fish_id],self.models[candidate_fish_id])
+                        if (dist<min_dist):
+                            min_dist = dist
+                            best_fish = fish_id
+                            best_fish_type = self.guessed_fishes_dict[candidate_fish_id]
+                            best_candidate = candidate_fish_id
+                        types_seen.add(self.guessed_fishes_dict[candidate_fish_id])
+
+
+
+        #print("self.guessed_fishes_dict " + str(self.guessed_fishes_dict))
+        #print("best dist: " + str(min_dist))
+        #print("guess fish" + str(best_fish) + "type" + str(best_fish_type))
+        #print(self.models[best_fish].B)
+        #print(self.models[best_candidate].B)
+        return (best_fish,best_fish_type)
+
+    """
+    def closest_guess(self):
+        if (len(self.guessed_fishes_set) == 0):
+            print("random")
+            return (0, random.randint(0, N_SPECIES - 1))  #random guess
+
+        min_dist = math.inf
+        best_fish = 0
+        best_fish_type = 0
+        for fish_id in range(0,N_FISH):
+            if not fish_id in self.guessed_fishes_set:
+                for type in range(0,N_SPECIES):
+                    dist = self.centroids[type].distance(self.models[fish_id])
+                    print(self.centroids[type].centerA)
+                    if (dist<min_dist):
+                        min_dist = dist
+                        best_fish = fish_id
+                        best_fish_type = type
+        print("best dist: " + str(min_dist))
+        print("guess fish" + str(best_fish) + "type" + str(best_fish_type))
+        return (best_fish,best_fish_type)
+    """
+
+    def distance(self, model1, model2):
+        A_dist = self.sqe(model1.A,model2.A)
+        B_dist = self.sqe(model1.B,model2.B)
+        return A_dist + B_dist
+
+    def sqe(self, matrix, other_matrix):
+        sqe = 0
+        m = len(matrix)
+        n = len(matrix[0])
+        result = {}
+        for i in range(m):
+            min = math.inf
+            for k in range(m):
+                rowmse = 0
+                for j in range(n):
+                    rowmse += math.pow(matrix[i][j] - other_matrix[k][j], 2)
+                if (rowmse < min and k not in result.values()):
+                    min = rowmse
+                    result[i] = k
+            sqe+= min
+        return sqe
 
 """
 ___________DEV NOTES___________
