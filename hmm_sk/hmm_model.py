@@ -207,7 +207,7 @@ class Hmm_model():
         self.emissions.append(new_obs)
 
 
-    def train(self, max_its, new_obs):
+    def train(self, max_its):
         T = len(self.emissions)
 
         self.scaling_factors = [0.0 for _ in range(T)]

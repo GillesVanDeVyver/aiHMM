@@ -43,6 +43,7 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
         """
         # value of obs 0-7 => 8 possible observations/emmissions
         self.time_start = time()
+        #print(step)
         if step ==1:
             self.init_models(observations)
 
@@ -52,9 +53,12 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
                 #print("B: " + str(model.B))
 
         #print(step)
+
+        guess= None
+
         if (N_STEPS-step<=N_FISH):
             #print(step)
-            return self.closest_already_guessed()
+            guess =  self.closest_already_guessed()
 
 
 
@@ -64,8 +68,8 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
 
 
 
-        while time() - self.time_start<0.22:
-            self.models[self.train_index].train(1,observations[self.train_index])
+        while time() - self.time_start<0.1:
+            self.models[self.train_index].train(1)
             self.train_index+=1
             if self.train_index == N_FISH:
                 self.train_index=0
@@ -79,7 +83,7 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
         #print((observations))
         #return (step % N_FISH, random.randint(0, N_SPECIES - 1))
 
-        return None
+        return guess
 
     def reveal(self, correct, fish_id, true_type):
         """
