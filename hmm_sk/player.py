@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import math
+from time import time
+
 from player_controller_hmm import PlayerControllerHMMAbstract
 from constants import *
 import random
@@ -19,6 +21,7 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
         #self.centroids = [Centroid() for _ in range(0,N_SPECIES)]
         #self.guessed_fishes = [[] for _ in range(0,N_SPECIES)]
         self.guessed_fishes_dict = {}
+        self.train_index = 0
 
 
     def init_models(self,observations):
@@ -39,7 +42,7 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
         :return: None or a tuple (fish_id, fish_type)
         """
         # value of obs 0-7 => 8 possible observations/emmissions
-
+        self.time_start = time()
         if step ==1:
             self.init_models(observations)
 
@@ -49,19 +52,23 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
                 #print("B: " + str(model.B))
 
         #print(step)
-        if (N_STEPS-step<=N_FISH+20):
+        if (N_STEPS-step<=N_FISH):
             #print(step)
             return self.closest_already_guessed()
 
 
 
 
-        if (step>5):
-            for i in range(0,len(observations)):
-                self.models[i].train(2,observations[i])
-        else:
-            for i in range(0,N_EMISSIONS):
-                self.models[i].add_emmissions_no_train(observations[i])
+        for fish_id in range(0,N_FISH):
+            self.models[fish_id].add_emmissions_no_train(observations[fish_id])
+
+
+
+        while time() - self.time_start<0.22:
+            self.models[self.train_index].train(1,observations[self.train_index])
+            self.train_index+=1
+            if self.train_index == N_FISH:
+                self.train_index=0
 
 
         #print("A" + str(self.models[3].A))
@@ -103,17 +110,13 @@ class PlayerControllerHMM(PlayerControllerHMMAbstract):
         best_candidate = 0
         for fish_id in range(0,N_FISH):
             if not fish_id in self.guessed_fishes_dict.keys():
-                types_seen = set()
-
                 for candidate_fish_id in self.guessed_fishes_dict.keys():
-                    if self.guessed_fishes_dict[candidate_fish_id] not in types_seen:
-                        dist = self.distance(self.models[fish_id],self.models[candidate_fish_id])
-                        if (dist<min_dist):
-                            min_dist = dist
-                            best_fish = fish_id
-                            best_fish_type = self.guessed_fishes_dict[candidate_fish_id]
-                            best_candidate = candidate_fish_id
-                        types_seen.add(self.guessed_fishes_dict[candidate_fish_id])
+                    dist = self.distance(self.models[fish_id],self.models[candidate_fish_id])
+                    if (dist<min_dist):
+                        min_dist = dist
+                        best_fish = fish_id
+                        best_fish_type = self.guessed_fishes_dict[candidate_fish_id]
+                        best_candidate = candidate_fish_id
 
 
 
