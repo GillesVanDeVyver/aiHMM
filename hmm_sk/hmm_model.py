@@ -5,7 +5,7 @@ import matrix
 from constants import *
 
 
-N =3
+N =5
 
 
 
