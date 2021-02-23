@@ -13,7 +13,6 @@ N =5
 
 class Hmm_model():
 
-    # k = nb of possible obs
     def __init__(self):
         self.A = self.uniform(N, N)
         self.B = self.uniform(N, N_EMISSIONS)
@@ -23,44 +22,8 @@ class Hmm_model():
         self.add_random_noise(self.pi)
         self.emissions = []
 
-    def re_init(self):
-        self.A = self.uniform(N, N)
-        self.B = self.uniform(N, N_EMISSIONS)
-        self.pi = self.uniform(1, N)
-        self.add_random_noise(self.A)
-        self.add_random_noise(self.B)
-        self.add_random_noise(self.pi)
-
-
-    def all_zero_col(self,matrix, col_ind):
-        for i in range(0,len(matrix)):
-            for el in matrix:
-                if el[col_ind] != 0:
-                    return False
-        return True
-
-    def uniform_col(self,matrix,col_ind):
-        nb_rows = len(matrix)
-        val = 1 / (nb_rows)
-        for i in range(0,nb_rows):
-            matrix[i][col_ind] = val
-
-    def add_random_noise_col(self,matrix,col_ind):
-        val = matrix[0][col_ind]
-        nb_rows = len(matrix)
-        rowStoch = 0
-        for i in range(nb_rows - 1):
-            randVal = random.uniform(-val, val) / nb_rows
-            rowStoch -= randVal
-            matrix[i][col_ind] += randVal
-        matrix[nb_rows - 1][col_ind] += rowStoch
-
-
     def aplha_pass(self, range_n, T):
         self.scaling_factors[0] = 0
-
-
-
         for i in range_n:
             temp = self.B[i][self.emissions[0]] * self.pi[0][i]
             self.alpha[0][i] = temp
@@ -70,11 +33,7 @@ class Hmm_model():
             self.scaling_factors[0] = 1 / N
         else:
             self.scaling_factors[0] = 1 / self.scaling_factors[0]
-
         self.alpha[0] = [x * self.scaling_factors[0] for x in self.alpha[0]]
-
-
-        log_prob = log(self.scaling_factors[0])
         for t in range(1, T):
             self.scaling_factors[t] = 0
             for i in range_n:
@@ -88,20 +47,15 @@ class Hmm_model():
             else:
                 self.scaling_factors[t] = 1 / self.scaling_factors[t]
             self.alpha[t] = [x * self.scaling_factors[t] for x in self.alpha[t]]
-            log_prob += log(self.scaling_factors[t])
-        return -log_prob
-
 
     def beta_pass(self, T, range_n, N ):
         self.beta[T - 1] = [self.scaling_factors[T - 1] for _ in range_n]  # 1 scaled by cT-1
-
         for t in reversed(range(T - 1)):
             for i in range(N):
                 s = 0
                 for j in range(N):
                     s += self.beta[t + 1][j] * self.B[j][self.emissions[t + 1]] * self.A[i][j]
                 self.beta[t][i] = s * self.scaling_factors[t]
-
 
     def compute_gamma(self,T, range_n):
         for t in range(T - 1):
@@ -112,9 +66,16 @@ class Hmm_model():
                     self.di_gamma[t][i][j] = temp
                     di_gamma_sum += temp
                 self.gamma[t][i] = di_gamma_sum
-
+            if self.all_zero_vec(self.gamma[t]):
+                self.gamma[t] = self.uniform_vec(N)
+                self.add_random_noise_vector(self.gamma[t])
         self.gamma[T - 1] = self.alpha[T - 1]
 
+    def all_zero_vec(self, vec):
+        for el in vec:
+            if el != 0:
+                return False
+        return True
 
     def reestimate(self,range_n,T):
         for i in range_n:
@@ -127,43 +88,12 @@ class Hmm_model():
                 for t in range(T):
                     if self.emissions[t] == k:
                         ind_gamma_sum += self.gamma[t][i]
-                if gamma_sum == 0:  # fix for diagonal init
-                    #self.B[i][k] = 1 / (N_EMISSIONS)
-                    self.re_init()
-                    #print("reinit")
-                    return
-                else:
-                    self.B[i][k] = round(ind_gamma_sum / gamma_sum,2)
+                self.B[i][k] = round(ind_gamma_sum / gamma_sum,2)
             for j in range_n:
                 di_gamma_sum = 0
                 for t in range(T - 1):
                     di_gamma_sum += self.di_gamma[t][i][j]
-                if gamma_sum == 0:  # fix for diagonal init
-                    #self.A[i][j] = 1 / (len(self.A))
-                    self.re_init()
-                    #print("reinit")
-                    return
-                else:
-                    self.A[i][j] = round(di_gamma_sum / gamma_sum,2)
-
-    """
-    # mean square error
-    def mse(self,matrix, other_matrix):
-        mse = 0
-        m = len(matrix)
-        n = len(matrix[0])
-        for i in range(m):
-            for j in range(n):
-                min = math.inf
-                for k in range(m):
-                    rowmse = math.pow(matrix[i][j] - other_matrix[i][j], 2)
-                    if (rowmse < mse):
-                        mse = rowmse
-                mse += rowmse
-        return mse / (m * n)
-        
-    """
-
+                self.A[i][j] = round(di_gamma_sum / gamma_sum,2)
 
     def uniform(self,m, n):
         val = 1 / (n)
@@ -172,7 +102,6 @@ class Hmm_model():
     def uniform_vec(self, n):
         val = 1 / (n)
         return [val for x in range(n)]
-
 
     def add_random_noise(self,matrix):
         val = matrix[0][0]
@@ -196,16 +125,8 @@ class Hmm_model():
             vec[i] += randVal
         vec[m - 1] += rowStoch
 
-    def identity(self,n):
-        m = [[0 for x in range(n)] for y in range(n)]
-        for i in range(0, n):
-            m[i][i] = 1
-        return m
-
-
     def add_emmissions_no_train(self, new_obs):
         self.emissions.append(new_obs)
-
 
     def train(self, max_its):
         T = len(self.emissions)
@@ -217,28 +138,15 @@ class Hmm_model():
         self.gamma = [[0.0 for _ in range(N)] for _ in range(T)]
 
         its = 0
-        old_log_prob = -float("inf")
         range_n = range(N)
         while its < max_its:
             #self.check()
-            log_prob = self.aplha_pass(range_n, T)
-            if log_prob==1:
-                #print("happens")
-                log_prob = self.aplha_pass(range_n, T)
-
-            #if log_prob > old_log_prob + 1E-2:
-                #old_log_prob = log_prob
-            #else:
-                #break
+            self.aplha_pass(range_n, T)
             self.beta_pass(T, range_n, N)
             self.compute_gamma(T, range_n)
             self.reestimate(range_n,T)
             its += 1
 
-    def check(self):
-        for t in range(0, len(self.B[0])):
-            if self.all_zero_col(self.B, t):
-                self.re_init()
-                #print("reinit1")
-                #self.uniform_col(self.B, t)
-                #self.add_random_noise_col(self.B, t)
+
+
+
